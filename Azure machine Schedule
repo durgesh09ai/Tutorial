@@ -1,0 +1,112 @@
+you want to automatically stop all your Azure App Services on weekends (Saturday & Sunday) and then start them again on weekdays. This can save costs since the apps won’t be running during non-working days.
+
+Here’s how you can do it:
+
+✅ Option 1: Using Azure Automation + Runbooks (Recommended)
+
+Create an Automation Account in the Azure Portal.
+
+Go to Automation Accounts → Create a new one.
+
+Add a Run As account (or Managed Identity) so it has permission to start/stop your App Services.
+
+Create two Runbooks (PowerShell or Python):
+
+Stop-AppServices.ps1 → Stops all app services
+
+Start-AppServices.ps1 → Starts all app services
+
+Example PowerShell script:
+
+# Stop all App Services in a subscription
+Connect-AzAccount -Identity   # (uses Managed Identity)
+
+$apps = Get-AzWebApp
+foreach ($app in $apps) {
+    Stop-AzWebApp -ResourceGroupName $app.ResourceGroup -Name $app.Name
+    Write-Output "Stopped: $($app.Name)"
+}
+
+
+Start script would use Start-AzWebApp instead.
+
+Schedule the Runbooks:
+
+Stop Runbook → Schedule at Saturday 00:01 AM
+
+Start Runbook → Schedule at Monday 00:01 AM
+
+✅ Option 2: Using Azure Logic Apps / Functions
+
+Create a Logic App that runs on a recurrence trigger (weekdays vs weekends).
+
+Add an Azure App Service – Stop/Start connector to control your apps.
+
+Logic App is easier if you prefer a no-code solution.
+
+✅ Option 3: Azure DevOps Pipeline (if you already use it)
+
+Create a scheduled pipeline with PowerShell tasks to stop/start app services.
+
+But Automation Runbooks is simpler if you just need scheduling.
+
+⚡ Best Practice: Use tags on your App Services, e.g.,
+autoSchedule=true
+and then in your script, filter only those apps so you don’t accidentally stop critical ones.
+
+
+__________________________________________________________________________________________________
+
+✅ Step 1: Tag the App Services You Want to Control
+
+Go to your App Service → Tags in the Azure Portal.
+
+Add a tag, for example:
+
+Key: AutoSchedule
+
+Value: true
+
+Do this only on the apps you want to stop/start automatically.
+
+✅ Step 2: PowerShell Runbook (Azure Automation)
+
+Here’s a ready-to-use script:
+
+__________________________________________________
+
+# Authenticate with Managed Identity inside Automation Account
+Connect-AzAccount -Identity
+
+# Get all App Services with tag AutoSchedule=true
+$apps = Get-AzWebApp | Where-Object { $_.Tags["AutoSchedule"] -eq "true" }
+
+foreach ($app in $apps) {
+    # To stop use:
+    Stop-AzWebApp -ResourceGroupName $app.ResourceGroup -Name $app.Name
+    Write-Output "Stopped: $($app.Name)"
+
+    # To start use:
+    # Start-AzWebApp -ResourceGroupName $app.ResourceGroup -Name $app.Name
+    # Write-Output "Started: $($app.Name)"
+}
+
+_________________________________________________________________
+
+✅ Step 3: Create 2 Runbooks
+
+Stop-SelectedApps → same script but using Stop-AzWebApp
+
+Start-SelectedApps → same script but using Start-AzWebApp
+
+✅ Step 4: Schedule
+
+Schedule Stop-SelectedApps at Saturday 00:01 AM
+
+Schedule Start-SelectedApps at Monday 00:01 AM
+
+🔹 This way, only the tagged App Services (AutoSchedule=true) will be controlled.
+🔹 Everything else stays running normally.
+
+
+
