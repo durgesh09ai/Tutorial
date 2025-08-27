@@ -78,6 +78,9 @@ __________________________________________________
 # Authenticate with Managed Identity inside Automation Account
 Connect-AzAccount -Identity
 
+# Set the correct subscription context
+Set-AzContext -SubscriptionId "<YOUR_SUBSCRIPTION_ID>"
+
 # Get all App Services with tag AutoSchedule=true
 $apps = Get-AzWebApp | Where-Object { $_.Tags["AutoSchedule"] -eq "true" }
 
